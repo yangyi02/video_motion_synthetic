@@ -1,15 +1,16 @@
 ### Synthetic motion on synthetic images
 The images are randomly generated with squares flying in the image.
 The square does not have any texture, nor the background.
-Image resolution: 32x32x3.
+Image resolution: 64x64x3.
+Clean background
 
 motion range = 1 corresponds to 9+1 motion classes.
 motion range = 2 corresponds to 25+1 motion classes.
 motion range = 3 corresponds to 49+1 motion classes.
 motion range = 5 corresponds to 121+1 motion classes.
 
-input: multiple previous frames (i.e. 28x28x3x4)
-output: local motion (i.e. 28x28x9), disappear pixels (i.e. 28x28x1) and next frame (i.e. 28x28x3)
+input: multiple previous frames (i.e. 64x64x3x4)
+output: local motion (i.e. 64x64x9), disappear pixels (i.e. 64x64x1) and next frame (i.e. 64x64x3)
 
 | Local motion | Training Loss (%) |
 | ------------- | ----------- | ----------- |
@@ -20,3 +21,4 @@ output: local motion (i.e. 28x28x9), disappear pixels (i.e. 28x28x1) and next fr
 
 Take Home Message:
 
+Hard to converge to a good optimal
