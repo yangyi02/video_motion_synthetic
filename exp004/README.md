@@ -23,3 +23,6 @@ output: local motion (i.e. 64x64x9), disappear pixels (i.e. 64x64x1) and next fr
 
 Take Home Message:
 
+Don't need disappear label, attention layer already includes that.
+Bidirectional model works!
+Using intermediate supervision, the motion looks better.
