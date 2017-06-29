@@ -5,4 +5,4 @@
 *.pth
 *.pkl
 *.list
-model/
+model*/

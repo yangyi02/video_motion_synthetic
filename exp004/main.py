@@ -41,10 +41,10 @@ def train_unsupervised(args, model, m_kernel, m_dict, reverse_m_dict):
         im_pred, im_pred_f, m_mask_f, attn_f, im_pred_b, m_mask_b, attn_b = model(im_input_f, im_input_b, ones)
         im_last_f = im_input_f[:, -args.num_channel:, :, :]
         im_last_b = im_input_b[:, -args.num_channel:, :, :]
-        loss_f = torch.abs(im_pred_f - im_output).sum()
-        loss_b = torch.abs(im_pred_b - im_output).sum()
+        # loss_f = torch.abs(im_pred_f - im_output).sum()
+        # loss_b = torch.abs(im_pred_b - im_output).sum()
         loss = torch.abs(im_pred - im_output).sum()
-        loss = (loss + loss_f + loss_b) / 3
+        # loss = (loss + loss_f + loss_b) / 3
         loss.backward()
         optimizer.step()
         train_loss.append(loss.data[0])
