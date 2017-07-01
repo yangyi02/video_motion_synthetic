@@ -1,5 +1,4 @@
 ### Synthetic motion on synthetic images
-Diagnostic experiments
 Stacked Bidirectional model
 And also remove sigmoid for attention
 
@@ -31,7 +30,3 @@ Having deeper models converges much better!
 
 But still the motion estimation magnitude and direction is not that perfect.
 The loss cannot converge to 0.
-The reason for the loss not converge to 0 is because of the boundary issue.
-The boundary cannot know which pixel is occluded and should disappear in the next frame.
-This makes even the ground truth motion cannot converge to loss 0.
-We should have a model that can handle occlusion and disappear now.

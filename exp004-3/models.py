@@ -302,7 +302,8 @@ def construct_seg(ones, m_mask, m_kernel, m_range):
     return seg
 
 
-def construct_image(im, m_mask, m_kernel, m_range):
+def construct_image(im, m_mask, appear, m_kernel, m_range):
+    im = im * appear.expand_as(im)
     pred = Variable(torch.Tensor(im.size()))
     if torch.cuda.is_available():
         pred = pred.cuda()
@@ -438,7 +439,229 @@ class UNetBidirection2(nn.Module):
 class UNetBidirection3(nn.Module):
     def __init__(self, im_height, im_width, im_channel, n_inputs, n_class, m_range, m_kernel):
         super(UNetBidirection3, self).__init__()
-        num_hidden = 48
+        num_hidden = 64
+        self.conv0 = nn.Conv2d(im_channel * n_inputs, num_hidden, 3, 1, 1)
+        self.bn0 = nn.BatchNorm2d(num_hidden)
+        self.conv1 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn1 = nn.BatchNorm2d(num_hidden)
+        self.conv2 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2 = nn.BatchNorm2d(num_hidden)
+        self.conv3 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn3 = nn.BatchNorm2d(num_hidden)
+        self.conv4 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn4 = nn.BatchNorm2d(num_hidden)
+        self.conv5 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn5 = nn.BatchNorm2d(num_hidden)
+        self.conv6 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn6 = nn.BatchNorm2d(num_hidden)
+        self.conv7 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn7 = nn.BatchNorm2d(num_hidden)
+        self.conv8 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn8 = nn.BatchNorm2d(num_hidden)
+        self.conv9 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn9 = nn.BatchNorm2d(num_hidden)
+        self.conv10 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn10 = nn.BatchNorm2d(num_hidden)
+        self.conv11 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn11 = nn.BatchNorm2d(num_hidden)
+        self.conv12 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn12 = nn.BatchNorm2d(num_hidden)
+        self.conv = nn.Conv2d(num_hidden * 2, num_hidden, 3, 1, 1)
+
+        self.conv2_1 = nn.Conv2d(num_hidden * 2, num_hidden, 3, 1, 1)
+        self.bn2_1 = nn.BatchNorm2d(num_hidden)
+        self.conv2_2 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_2 = nn.BatchNorm2d(num_hidden)
+        self.conv2_3 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_3 = nn.BatchNorm2d(num_hidden)
+        self.conv2_4 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_4 = nn.BatchNorm2d(num_hidden)
+        self.conv2_5 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_5 = nn.BatchNorm2d(num_hidden)
+        self.conv2_6 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_6 = nn.BatchNorm2d(num_hidden)
+        self.conv2_7 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
+        self.bn2_7 = nn.BatchNorm2d(num_hidden)
+        self.conv2_8 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn2_8 = nn.BatchNorm2d(num_hidden)
+        self.conv2_9 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn2_9 = nn.BatchNorm2d(num_hidden)
+        self.conv2_10 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn2_10 = nn.BatchNorm2d(num_hidden)
+        self.conv2_11 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn2_11 = nn.BatchNorm2d(num_hidden)
+        self.conv2_12 = nn.Conv2d(num_hidden*2, num_hidden, 3, 1, 1)
+        self.bn2_12 = nn.BatchNorm2d(num_hidden)
+        self.conv_2 = nn.Conv2d(num_hidden*2, n_class, 3, 1, 1)
+
+        self.conv_d = nn.Conv2d(num_hidden*2, 1, 3, 1, 1)
+
+        self.maxpool = nn.MaxPool2d(2, stride=2, return_indices=False, ceil_mode=False)
+        self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
+
+        self.im_height = im_height
+        self.im_width = im_width
+        self.im_channel = im_channel
+        self.n_class = n_class
+        self.m_range = m_range
+        self.m_kernel = m_kernel
+
+    def forward(self, im_input_f, im_input_b, ones):
+        x = self.bn0(self.conv0(im_input_f))
+
+        x1 = F.relu(self.bn1(self.conv1(x)))
+        x2 = self.maxpool(x1)
+        x2 = F.relu(self.bn2(self.conv2(x2)))
+        x3 = self.maxpool(x2)
+        x3 = F.relu(self.bn3(self.conv3(x3)))
+        x4 = self.maxpool(x3)
+        x4 = F.relu(self.bn4(self.conv4(x4)))
+        x5 = self.maxpool(x4)
+        x5 = F.relu(self.bn5(self.conv5(x5)))
+        x6 = self.maxpool(x5)
+        x6 = F.relu(self.bn6(self.conv6(x6)))
+        x7 = self.maxpool(x6)
+        x7 = F.relu(self.bn7(self.conv7(x7)))
+        x7 = self.upsample(x7)
+        x8 = torch.cat((x7, x6), 1)
+        x8 = F.relu(self.bn8(self.conv8(x8)))
+        x8 = self.upsample(x8)
+        x9 = torch.cat((x8, x5), 1)
+        x9 = F.relu(self.bn9(self.conv9(x9)))
+        x9 = self.upsample(x9)
+        x10 = torch.cat((x9, x4), 1)
+        x10 = F.relu(self.bn10(self.conv10(x10)))
+        x10 = self.upsample(x10)
+        x11 = torch.cat((x10, x3), 1)
+        x11 = F.relu(self.bn11(self.conv11(x11)))
+        x11 = self.upsample(x11)
+        x12 = torch.cat((x11, x2), 1)
+        x12 = F.relu(self.bn12(self.conv12(x12)))
+        x12 = self.upsample(x12)
+        y = torch.cat((x12, x1), 1)
+        y = self.conv(y)
+
+        x = torch.cat((x, y), 1)
+        x1 = F.relu(self.bn2_1(self.conv2_1(x)))
+        x2 = self.maxpool(x1)
+        x2 = F.relu(self.bn2_2(self.conv2_2(x2)))
+        x3 = self.maxpool(x2)
+        x3 = F.relu(self.bn2_3(self.conv2_3(x3)))
+        x4 = self.maxpool(x3)
+        x4 = F.relu(self.bn2_4(self.conv2_4(x4)))
+        x5 = self.maxpool(x4)
+        x5 = F.relu(self.bn2_5(self.conv2_5(x5)))
+        x6 = self.maxpool(x5)
+        x6 = F.relu(self.bn2_6(self.conv2_6(x6)))
+        x7 = self.maxpool(x6)
+        x7 = F.relu(self.bn2_7(self.conv2_7(x7)))
+        x7 = self.upsample(x7)
+        x8 = torch.cat((x7, x6), 1)
+        x8 = F.relu(self.bn2_8(self.conv2_8(x8)))
+        x8 = self.upsample(x8)
+        x9 = torch.cat((x8, x5), 1)
+        x9 = F.relu(self.bn2_9(self.conv2_9(x9)))
+        x9 = self.upsample(x9)
+        x10 = torch.cat((x9, x4), 1)
+        x10 = F.relu(self.bn2_10(self.conv2_10(x10)))
+        x10 = self.upsample(x10)
+        x11 = torch.cat((x10, x3), 1)
+        x11 = F.relu(self.bn2_11(self.conv2_11(x11)))
+        x11 = self.upsample(x11)
+        x12 = torch.cat((x11, x2), 1)
+        x12 = F.relu(self.bn2_12(self.conv2_12(x12)))
+        x12 = self.upsample(x12)
+        y = torch.cat((x12, x1), 1)
+
+        motion_f = self.conv_2(y)
+        disappear_f = F.sigmoid(self.conv_d(y))
+
+        x = self.bn0(self.conv0(im_input_b))
+        x1 = F.relu(self.bn1(self.conv1(x)))
+        x2 = self.maxpool(x1)
+        x2 = F.relu(self.bn2(self.conv2(x2)))
+        x3 = self.maxpool(x2)
+        x3 = F.relu(self.bn3(self.conv3(x3)))
+        x4 = self.maxpool(x3)
+        x4 = F.relu(self.bn4(self.conv4(x4)))
+        x5 = self.maxpool(x4)
+        x5 = F.relu(self.bn5(self.conv5(x5)))
+        x6 = self.maxpool(x5)
+        x6 = F.relu(self.bn6(self.conv6(x6)))
+        x7 = self.maxpool(x6)
+        x7 = F.relu(self.bn7(self.conv7(x7)))
+        x7 = self.upsample(x7)
+        x8 = torch.cat((x7, x6), 1)
+        x8 = F.relu(self.bn8(self.conv8(x8)))
+        x8 = self.upsample(x8)
+        x9 = torch.cat((x8, x5), 1)
+        x9 = F.relu(self.bn9(self.conv9(x9)))
+        x9 = self.upsample(x9)
+        x10 = torch.cat((x9, x4), 1)
+        x10 = F.relu(self.bn10(self.conv10(x10)))
+        x10 = self.upsample(x10)
+        x11 = torch.cat((x10, x3), 1)
+        x11 = F.relu(self.bn11(self.conv11(x11)))
+        x11 = self.upsample(x11)
+        x12 = torch.cat((x11, x2), 1)
+        x12 = F.relu(self.bn12(self.conv12(x12)))
+        x12 = self.upsample(x12)
+        y = torch.cat((x12, x1), 1)
+        y = self.conv(y)
+
+        x = torch.cat((x, y), 1)
+        x1 = F.relu(self.bn2_1(self.conv2_1(x)))
+        x2 = self.maxpool(x1)
+        x2 = F.relu(self.bn2_2(self.conv2_2(x2)))
+        x3 = self.maxpool(x2)
+        x3 = F.relu(self.bn2_3(self.conv2_3(x3)))
+        x4 = self.maxpool(x3)
+        x4 = F.relu(self.bn2_4(self.conv2_4(x4)))
+        x5 = self.maxpool(x4)
+        x5 = F.relu(self.bn2_5(self.conv2_5(x5)))
+        x6 = self.maxpool(x5)
+        x6 = F.relu(self.bn2_6(self.conv2_6(x6)))
+        x7 = self.maxpool(x6)
+        x7 = F.relu(self.bn2_7(self.conv2_7(x7)))
+        x7 = self.upsample(x7)
+        x8 = torch.cat((x7, x6), 1)
+        x8 = F.relu(self.bn2_8(self.conv2_8(x8)))
+        x8 = self.upsample(x8)
+        x9 = torch.cat((x8, x5), 1)
+        x9 = F.relu(self.bn2_9(self.conv2_9(x9)))
+        x9 = self.upsample(x9)
+        x10 = torch.cat((x9, x4), 1)
+        x10 = F.relu(self.bn2_10(self.conv2_10(x10)))
+        x10 = self.upsample(x10)
+        x11 = torch.cat((x10, x3), 1)
+        x11 = F.relu(self.bn2_11(self.conv2_11(x11)))
+        x11 = self.upsample(x11)
+        x12 = torch.cat((x11, x2), 1)
+        x12 = F.relu(self.bn2_12(self.conv2_12(x12)))
+        x12 = self.upsample(x12)
+        y = torch.cat((x12, x1), 1)
+
+        motion_b = self.conv_2(y)
+        disappear_b = F.sigmoid(self.conv_d(y))
+
+        m_mask_f = F.softmax(motion_f)
+        m_mask_b = F.softmax(motion_b)
+
+        seg_f = construct_seg(ones, m_mask_f, disappear_f, self.m_kernel, self.m_range)
+        seg_b = construct_seg(ones, m_mask_b, disappear_b, self.m_kernel, self.m_range)
+
+        pred_f = construct_image(im_input_f[:, -self.im_channel:, :, :], m_mask_f, disappear_f, self.m_kernel, self.m_range)
+        pred_b = construct_image(im_input_b[:, -self.im_channel:, :, :], m_mask_b, disappear_b, self.m_kernel, self.m_range)
+
+        attn = (seg_f + 1e-5) / (seg_f + seg_b + 2e-5)
+        pred = attn.expand_as(pred_f) * pred_f + (1 - attn.expand_as(pred_b)) * pred_b
+        return pred, pred_f, m_mask_f, disappear_f, attn, pred_b, m_mask_b, disappear_b, 1 - attn
+
+
+class UNetBidirection4(nn.Module):
+    def __init__(self, im_height, im_width, im_channel, n_inputs, n_class, m_range, m_kernel):
+        super(UNetBidirection4, self).__init__()
+        num_hidden = 64
         self.conv0 = nn.Conv2d(im_channel * n_inputs, num_hidden, 3, 1, 1)
         self.bn0 = nn.BatchNorm2d(num_hidden)
         self.conv1 = nn.Conv2d(num_hidden, num_hidden, 3, 1, 1)
@@ -645,91 +868,17 @@ class UNetBidirection3(nn.Module):
         seg_f = construct_seg(ones, m_mask_f, self.m_kernel, self.m_range)
         seg_b = construct_seg(ones, m_mask_b, self.m_kernel, self.m_range)
 
-        seg_f = 1 - F.relu(1 - seg_f)
-        seg_b = 1 - F.relu(1 - seg_b)
-
-        pred_f = construct_image(im_input_f[:, -self.im_channel:, :, :], m_mask_f, self.m_kernel, self.m_range)
-        pred_b = construct_image(im_input_b[:, -self.im_channel:, :, :], m_mask_b, self.m_kernel, self.m_range)
-
-        attn = (seg_f + 1e-5) / (seg_f + seg_b + 2e-5)
-        pred = attn.expand_as(pred_f) * pred_f + (1 - attn.expand_as(pred_b)) * pred_b
-        return pred, pred_f, m_mask_f, attn, pred_b, m_mask_b, 1 - attn
-
-
-class UNetBidirectionGT(nn.Module):
-    def __init__(self, im_height, im_width, im_channel, n_inputs, n_class, m_range, m_kernel):
-        super(UNetBidirectionGT, self).__init__()
-        self.im_height = im_height
-        self.im_width = im_width
-        self.im_channel = im_channel
-        self.n_class = n_class
-        self.m_range = m_range
-        self.m_kernel = m_kernel
-
-    def forward(self, im_input_f, im_input_b, ones, gt_motion_f, gt_motion_b):
-        m_mask_f = gt_motion_f
-        m_mask_b = gt_motion_b
-
-        seg_f = construct_seg(ones, m_mask_f, self.m_kernel, self.m_range)
-        seg_b = construct_seg(ones, m_mask_b, self.m_kernel, self.m_range)
-
-        # seg_f[seg_f > 1] = 1
-        # seg_b[seg_b > 1] = 1
-
-        seg_f = 1 - F.relu(1 - seg_f)
-        seg_b = 1 - F.relu(1 - seg_b)
-
-        pred_f = construct_image(im_input_f[:, -self.im_channel:, :, :], m_mask_f, self.m_kernel, self.m_range)
-        pred_b = construct_image(im_input_b[:, -self.im_channel:, :, :], m_mask_b, self.m_kernel, self.m_range)
-
-        attn = (seg_f + 1e-5) / (seg_f + seg_b + 2e-5)
-        pred = attn.expand_as(pred_f) * pred_f + (1 - attn.expand_as(pred_b)) * pred_b
-        return pred, pred_f, m_mask_f, attn, pred_b, m_mask_b, 1 - attn
-
-
-class UNetBidirectionGT2(nn.Module):
-    def __init__(self, im_height, im_width, im_channel, n_inputs, n_class, m_range, m_kernel):
-        super(UNetBidirectionGT2, self).__init__()
-        self.im_height = im_height
-        self.im_width = im_width
-        self.im_channel = im_channel
-        self.n_class = n_class
-        self.m_range = m_range
-        self.m_kernel = m_kernel
-
-    def forward(self, im_input_f, im_input_b, ones, gt_motion_f, gt_motion_b):
-        m_mask_f = gt_motion_f
-        m_mask_b = gt_motion_b
-
-        seg_f = construct_seg(ones, m_mask_f, self.m_kernel, self.m_range)
-        seg_b = construct_seg(ones, m_mask_b, self.m_kernel, self.m_range)
-
         disappear_f = F.relu(seg_f - 1)
+        appear_f = F.relu(1 - disappear_f)
         disappear_b = F.relu(seg_b - 1)
+        appear_b = F.relu(1 - disappear_b)
 
-        disappear_f = 1 - F.relu(1 - disappear_f)
-        disappear_b = 1 - F.relu(1 - disappear_b)
-
-        pred_f = construct_image_disappear(im_input_f[:, -self.im_channel:, :, :], m_mask_f, disappear_f, self.m_kernel, self.m_range)
-        pred_b = construct_image_disappear(im_input_b[:, -self.im_channel:, :, :], m_mask_b, disappear_b, self.m_kernel, self.m_range)
+        pred_f = construct_image(im_input_f[:, -self.im_channel:, :, :], m_mask_f, appear_f, self.m_kernel, self.m_range)
+        pred_b = construct_image(im_input_b[:, -self.im_channel:, :, :], m_mask_b, appear_b, self.m_kernel, self.m_range)
 
         seg_f = 1 - F.relu(1 - seg_f)
         seg_b = 1 - F.relu(1 - seg_b)
 
         attn = (seg_f + 1e-5) / (seg_f + seg_b + 2e-5)
         pred = attn.expand_as(pred_f) * pred_f + (1 - attn.expand_as(pred_b)) * pred_b
-        return pred, pred_f, m_mask_f, attn, pred_b, m_mask_b, 1 - attn
-
-
-def construct_image_disappear(im, m_mask, disappear, m_kernel, m_range):
-    im = im * (1 - disappear).expand_as(im)
-    pred = Variable(torch.Tensor(im.size()))
-    if torch.cuda.is_available():
-        pred = pred.cuda()
-    for i in range(im.size(1)):
-        im_expand = im[:, i, :, :].unsqueeze(1).expand_as(m_mask) * m_mask
-        for j in range(im.size(0)):
-            pred[j, i, :, :] = F.conv2d(im_expand[j, :, :, :].unsqueeze(0), m_kernel, None, 1, m_range)
-    return pred
-
-
+        return pred, pred_f, m_mask_f, 1 - appear_f, attn, pred_b, m_mask_b, 1 - appear_b, 1 - attn

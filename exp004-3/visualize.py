@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import flowlib
 from PIL import Image
 
-
-def visualize(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, attn_f, pred_motion_b, gt_motion_b, attn_b, m_range, reverse_m_dict):
-    img = visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, attn_f, pred_motion_b, gt_motion_b, attn_b, m_range, reverse_m_dict)
+def visualize(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, disappear_f, attn_f, pred_motion_b, gt_motion_b, disappear_b, attn_b, m_range, reverse_m_dict):
+    img = visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, disappear_f, attn_f, pred_motion_b, gt_motion_b, disappear_b, attn_b, m_range, reverse_m_dict)
     # plt.figure(1)
     # plt.imshow(img)
     # plt.axis('off')
@@ -17,7 +16,7 @@ def visualize(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_
     img.save('tmp.png')
 
 
-def visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, attn_f, pred_motion_b, gt_motion_b, attn_b, m_range, reverse_m_dict):
+def visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_motion_f, disappear_f, attn_f, pred_motion_b, gt_motion_b, disappear_b, attn_b, m_range, reverse_m_dict):
     channel, im_height, im_width = im_output.size(1), im_output.size(2), im_output.size(3)
     width, height = get_img_size(4, 5, im_width, im_height)
     img = numpy.ones((height, width, 3))
@@ -68,6 +67,12 @@ def visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_m
     x1, y1, x2, y2 = get_img_coordinate(3, 2, im_width, im_height)
     img[y1:y2, x1:x2, :] = optical_flow / 255.0
 
+    disappear = disappear_f[0].cpu().data.numpy().squeeze()
+    cmap = plt.get_cmap('jet')
+    disappear = cmap(disappear)[:, :, 0:3]
+    x1, y1, x2, y2 = get_img_coordinate(3, 4, im_width, im_height)
+    img[y1:y2, x1:x2, :] = disappear
+
     attn = attn_f[0].cpu().data.numpy().squeeze()
     cmap = plt.get_cmap('jet')
     attn = cmap(attn)[:, :, 0:3]
@@ -83,6 +88,12 @@ def visualize_image(im_input_f, im_input_b, im_output, pred, pred_motion_f, gt_m
     optical_flow = flowlib.visualize_flow(gt_motion, m_range)
     x1, y1, x2, y2 = get_img_coordinate(4, 2, im_width, im_height)
     img[y1:y2, x1:x2, :] = optical_flow / 255.0
+
+    disappear = disappear_b[0].cpu().data.numpy().squeeze()
+    cmap = plt.get_cmap('jet')
+    disappear = cmap(disappear)[:, :, 0:3]
+    x1, y1, x2, y2 = get_img_coordinate(4, 4, im_width, im_height)
+    img[y1:y2, x1:x2, :] = disappear
 
     attn = attn_b[0].cpu().data.numpy().squeeze()
     cmap = plt.get_cmap('jet')
